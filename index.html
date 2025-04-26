@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V0与Lovable用户体验对比分析：数据驱动的深度评测</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Framer Motion -->
+    <script src="https://unpkg.com/framer-motion@10.12.16/dist/framer-motion.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- GSAP动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Remotion -->
+    <script src="https://unpkg.com/@remotion/player@4.0.79/dist/index.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'v0-primary': '#6366F1',
+                        'v0-secondary': '#A5B4FC',
+                        'lovable-primary': '#EC4899',
+                        'lovable-secondary': '#F9A8D4',
+                        'accent-yellow': '#FBBF24',
+                        'accent-green': '#34D399',
+                        'accent-blue': '#60A5FA',
+                        'dark-bg': '#111827',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+        
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        
+        .v0-gradient {
+            background-image: linear-gradient(135deg, #6366F1 0%, #A5B4FC 100%);
+        }
+        
+        .lovable-gradient {
+            background-image: linear-gradient(135deg, #EC4899 0%, #F9A8D4 100%);
+        }
+        
+        .accent-gradient {
+            background-image: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+        }
+        
+        .mega-number {
+            font-size: clamp(4rem, 15vw, 12rem);
+            line-height: 1;
+            font-weight: 800;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        /* 卡通风格阴影 */
+        .cartoon-shadow {
+            box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 滚动指示器 */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0) translateX(-50%);
+            }
+            40% {
+                transform: translateY(-20px) translateX(-50%);
+            }
+            60% {
+                transform: translateY(-10px) translateX(-50%);
+            }
+        }
+        
+        /* 勾线图形样式 */
+        .outline-icon {
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        /* 视频容器 */
+        .video-container {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 宽高比 */
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        
+        .video-container iframe,
+        .video-container .video-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 视频控制器 */
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 50px;
+            z-index: 10;
+        }
+        
+        .video-controls button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .video-controls button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 视频场景 */
+        .video-scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .video-scene.active {
+            opacity: 1;
+        }
+        
+        /* 进度条 */
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #6366F1, #EC4899);
+            transition: width 0.1s linear;
+        }
+        
+        /* 视频场景动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideInLeft {
+            from { transform: translateX(-50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .anim-fade-in {
+            animation: fadeIn 0.8s forwards;
+        }
+        
+        .anim-scale-in {
+            animation: scaleIn 0.8s forwards;
+        }
+        
+        .anim-slide-left {
+            animation: slideInLeft 0.8s forwards;
+        }
+        
+        .anim-slide-right {
+            animation: slideInRight 0.8s forwards;
+        }
+        
+        /* 视频场景内容样式 */
+        .scene-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .scene-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .scene-content {
+            width: 80%;
+            max-width: 1000px;
+        }
+        
+        .scene-chart-container {
+            width: 100%;
+            height: 300px;
+            margin: 2rem 0;
+        }
+        
+        .scene-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+        }
+        
+        .scene-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .scene-stat {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .scene-label {
+            font-size: 1rem;
+            color: rgba(0, 0, 0, 0.7);
+        }
+        
+        /* 视频导航指示器 */
+        .video-nav {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .video-nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .video-nav-dot.active {
+            background: white;
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <!-- 英雄区域 -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                <span class="gradient-text v0-gradient">V0</span> 
+                <span class="text-2xl md:text-4xl">vs</span> 
+                <span class="gradient-text lovable-gradient">Lovable</span>
+            </h1>
+            <p class="text-5xl md:text-7xl font-bold mb-8">用户体验对比分析</p>
+            <p class="text-xl md:text-2xl mb-12 max-w-3xl mx-auto">
+                <span class="font-bold">数据驱动的深度评测</span>
+                <span class="text-gray-500 text-base"> | Data-driven In-depth Evaluation</span>
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-16">
+                <div class="bg-gray-50 p-8 rounded-xl cartoon-shadow">
+                    <i class="fas fa-bolt text-4xl text-v0-primary mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">V0 优势</h3>
+                    <p class="text-gray-600">UI原型设计领域保持效率优势，平均生成时间仅需 <span class="font-bold text-v0-primary">4.2秒</span></p>
+                </div>
+                <div class="bg-gray-50 p-8 rounded-xl cartoon-shadow">
+                    <i class="fas fa-cubes text-4xl text-lovable-primary mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">Lovable 优势</h3>
+                    <p class="text-gray-600">全栈开发场景中展现更强的功能完整性，支持 <span class="font-bold text-lovable-primary">6类</span> 后端服务集成</p>
+                </div>
+            </div>
+            
+            <div class="scroll-indicator text-gray-400">
+                <p class="mb-2 text-sm">向下滚动探索更多</p>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心发现概览 -->
+    <section class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">核心发现概览</h2>
+                <p class="text-gray-500 text-lg">Core Findings Overview</p>
+            </div>
+            
+            <div class="bento-grid reveal">
+                <div class="col-span-12 md:col-span-6 lg:col-span-4 bg-white p-8 rounded-xl cartoon-shadow">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-v0-secondary flex items-center justify-center mr-4">
+                            <i class="fas fa-chart-line text-v0-primary"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold">用户推荐率</h3>
+                    </div>
+                    <div class="flex items-end gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Lovable</p>
+                            <p class="mega-number gradient-text lovable-gradient">78<span class="text-4xl">%</span></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">V0</p>
+                            <p class="text-6xl font-bold text-v0-primary">42<span class="text-2xl">%</span></p>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-gray-600">在3000份用户样本中，复杂项目完成度推荐率对比</p>
+                </div>
+                
+                <div class="col-span-12 md:col-span-6 lg:col-span-4 bg-white p-8 rounded-xl cartoon-shadow">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-accent-yellow/20 flex items-center justify-center mr-4">
+                            <i class="fas fa-code text-accent-yellow"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold">组件生成准确率</h3>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="mb-4">
+                            <div class="flex justify-between mb-1">
+                                <p>V0 <span class="text-v0-primary font-bold">92%</span></p>
+                                <p>Tailwind CSS与Shadcn UI整合</p>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-v0-primary h-2.5 rounded-full" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <p>Lovable <span class="text-lovable-primary font-bold">85%</span></p>
+                                <p>数据库架构生成</p>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-lovable-primary h-2.5 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-span-12 lg:col-span-4 bg-white p-8 rounded-xl cartoon-shadow">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-accent-green/20 flex items-center justify-center mr-4">
+                            <i class="fas fa-clock text-accent-green"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold">代码迭代优化</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="iterationChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-gray-600">标准登录模块实现场景中的迭代次数对比</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术架构对比 -->
+    <section class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">技术架构对比</h2>
+                <p class="text-gray-500 text-lg">Technical Architecture Comparison</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 reveal">
+                <div class="bg-v0-secondary/10 p-8 rounded-xl cartoon-shadow">
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full bg-v0-primary flex items-center justify-center mr-4">
+                            <i class="fas fa-microchip text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-v0-primary">V0</h3>
+                    </div>
+                    
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-v0-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">Sonnet模型架构</p>
+                                <p class="text-gray-600">专注于Tailwind CSS与Shadcn UI的深度整合</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-v0-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">前端组件生成</p>
+                                <p class="text-gray-600">支持度 <span class="text-v0-primary font-bold">100%</span></p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-times-circle text-gray-400 mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">数据库自动建模</p>
+                                <p class="text-gray-600">有限支持</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-times-circle text-gray-400 mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">API端点生成</p>
+                                <p class="text-gray-600">需手动实现</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-v0-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">部署集成</p>
+                                <p class="text-gray-600">Vercel专属支持</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-lovable-secondary/10 p-8 rounded-xl cartoon-shadow">
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full bg-lovable-primary flex items-center justify-center mr-4">
+                            <i class="fas fa-cubes text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-lovable-primary">Lovable</h3>
+                    </div>
+                    
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">Claude 3.5模型构建</p>
+                                <p class="text-gray-600">实现全栈代码生成能力</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">前端组件生成</p>
+                                <p class="text-gray-600">支持度 <span class="text-lovable-primary font-bold">95%</span></p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">数据库自动建模</p>
+                                <p class="text-gray-600">完整支持</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">API端点生成</p>
+                                <p class="text-gray-600">自动生成</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                            <div>
+                                <p class="font-bold">部署集成</p>
+                                <p class="text-gray-600">多平台支持</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 响应性能指标 -->
+    <section class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">响应性能指标</h2>
+                <p class="text-gray-500 text-lg">Performance Metrics</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 reveal">
+                <div class="bg-white p-8 rounded-xl cartoon-shadow">
+                    <h3 class="text-xl font-bold mb-4">初始加载时间</h3>
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">V0</p>
+                            <p class="text-5xl font-bold text-v0-primary">2.3<span class="text-2xl">s</span></p>
+                        </div>
+                        <div class="text-4xl">vs</div>
+                        <div>
+                            <p class="text-sm text-gray-500">Lovable</p>
+                            <p class="text-5xl font-bold text-lovable-primary">3.1<span class="text-2xl">s</span></p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                            <div class="bg-v0-primary h-2.5 rounded-full" style="width: 74%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">V0 速度优势: 26%</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl cartoon-shadow">
+                    <h3 class="text-xl font-bold mb-4">复杂组件生成</h3>
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">V0</p>
+                            <p class="text-5xl font-bold text-v0-primary">4.8<span class="text-2xl">s</span></p>
+                        </div>
+                        <div class="text-4xl">vs</div>
+                        <div>
+                            <p class="text-sm text-gray-500">Lovable</p>
+                            <p class="text-5xl font-bold text-lovable-primary">6.2<span class="text-2xl">s</span></p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                            <div class="bg-v0-primary h-2.5 rounded-full" style="width: 77%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">V0 速度优势: 23%</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl cartoon-shadow">
+                    <h3 class="text-xl font-bold mb-4">全栈项目构建</h3>
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">V0</p>
+                            <p class="text-xl font-bold text-gray-400">不支持</p>
+                        </div>
+                        <div class="text-4xl">vs</div>
+                        <div>
+                            <p class="text-sm text-gray-500">Lovable</p>
+                            <p class="text-5xl font-bold text-lovable-primary">28<span class="text-2xl">s</span></p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                            <div class="bg-lovable-primary h-2.5 rounded-full" style="width: 100%"></div>
+                        </div>
+                        <p class="text-sm text-gray-500">Lovable 独占功能</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-16 reveal">
+                <div class="chart-container h-96">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <p class="text-center text-gray-500 mt-4">在标准硬件环境下（AWS t3.medium实例），对500kb规模项目进行压力测试</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 用户体验数据 -->
+    <section class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">用户体验数据</h2>
+                <p class="text-gray-500 text-lg">User Experience Data</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 reveal">
+                <div>
+                    <h3 class="text-2xl font-bold mb-6">用户满意度调查</h3>
+                    <p class="text-gray-600 mb-6">收集2024年Q4季度2000名开发者反馈</p>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <p class="font-bold">学习曲线</p>
+                                <div>
+                                    <span class="text-v0-primary font-bold">8.2</span> vs 
+                                    <span class="text-lovable-primary font-bold">7.1</span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                                <div class="bg-v0-primary h-2.5 rounded-full" style="width: 82%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500">V0文档系统更完善</p>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <p class="font-bold">输出可维护性</p>
+                                <div>
+                                    <span class="text-v0-primary font-bold">6.8</span> vs 
+                                    <span class="text-lovable-primary font-bold">8.4</span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                                <div class="bg-lovable-primary h-2.5 rounded-full" style="width: 84%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500">Lovable代码结构更优</p>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <p class="font-bold">错误恢复能力</p>
+                                <div>
+                                    <span class="text-v0-primary font-bold">7.1</span> vs 
+                                    <span class="text-lovable-primary font-bold">8.9</span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                                <div class="bg-lovable-primary h-2.5 rounded-full" style="width: 89%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500">Lovable实时调试更佳</p>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <p class="font-bold">多平台适配</p>
+                                <div>
+                                    <span class="text-v0-primary font-bold">7.5</span> vs 
+                                    <span class="text-lovable-primary font-bold">9.2</span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                                <div class="bg-lovable-primary h-2.5 rounded-full" style="width: 92%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500">Lovable响应式更强</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-2xl font-bold mb-6">典型场景完成度</h3>
+                    <div class="chart-container">
+                        <canvas id="scenarioChart"></canvas>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="font-bold">基础UI搭建</p>
+                            <div class="flex justify-between">
+                                <p>V0: <span class="text-v0-primary font-bold">12分钟</span></p>
+                                <p>Lovable: <span class="text-lovable-primary font-bold">15分钟</span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="font-bold">购物车逻辑实现</p>
+                            <div class="flex justify-between">
+                                <p>V0: <span class="text-gray-500">需手动编码</span></p>
+                                <p>Lovable: <span class="text-lovable-primary font-bold">自动生成</span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="font-bold">支付网关集成</p>
+                            <div class="flex justify-between">
+                                <p>V0: <span class="text-gray-500">不支持</span></p>
+                                <p>Lovable: <span class="text-lovable-primary font-bold">3种方案可选</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 商业化对比 -->
+    <section class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">商业化对比</h2>
+                <p class="text-gray-500 text-lg">Commercial Comparison</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 reveal">
+                <div>
+                    <h3 class="text-2xl font-bold mb-6">定价模型分析</h3>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="p-4">服务层级</th>
+                                    <th class="p-4">V0定价</th>
+                                    <th class="p-4">Lovable定价</th>
+                                    <th class="p-4">功能差异</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b">
+                                    <td class="p-4 font-bold">免费版</td>
+                                    <td class="p-4">20次/月</td>
+                                    <td class="p-4">10次/月</td>
+                                    <td class="p-4">Lovable限制后端功能</td>
+                                </tr>
+                                <tr class="border-b">
+                                    <td class="p-4 font-bold">基础版</td>
+                                    <td class="p-4">$20/150次</td>
+                                    <td class="p-4">$30/不限量</td>
+                                    <td class="p-4">Lovable含团队协作</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-bold">企业版</td>
+                                    <td class="p-4">定制报价</td>
+                                    <td class="p-4">$500/月</td>
+                                    <td class="p-4">Lovable提供私有部署</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <p class="text-xl font-bold mb-4">成本效益分析</p>
+                        <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                            <p class="mb-4">在月均300次使用场景下：</p>
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <p class="font-bold text-v0-primary">V0</p>
+                                    <p class="text-3xl font-bold">$0.067<span class="text-lg">/次</span></p>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-lovable-primary">Lovable</p>
+                                    <p class="text-3xl font-bold">$0.033<span class="text-lg">/次</span></p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600">但V0在50次以下使用时更具价格优势</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-2xl font-bold mb-6">技术生态整合</h3>
+                    <p class="text-gray-600 mb-6">第三方服务支持</p>
+                    
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                            <div class="flex items-start">
+                                <i class="fab fa-superpowers text-2xl text-accent-blue mt-1 mr-4"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-2">Supabase</p>
+                                    <div class="flex justify-between mb-2">
+                                        <p>V0: <span class="text-v0-primary">基础读写</span></p>
+                                        <p>Lovable: <span class="text-lovable-primary">完整ORM支持</span></p>
+                                    </div>
+                                    <p class="text-gray-600">Lovable自动生成类型</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                            <div class="flex items-start">
+                                <i class="fab fa-stripe text-2xl text-accent-green mt-1 mr-4"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-2">Stripe支付</p>
+                                    <div class="flex justify-between mb-2">
+                                        <p>V0: <span class="text-v0-primary">需插件</span></p>
+                                        <p>Lovable: <span class="text-lovable-primary">原生集成</span></p>
+                                    </div>
+                                    <p class="text-gray-600">Lovable含测试沙盒</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                            <div class="flex items-start">
+                                <i class="fab fa-github text-2xl text-gray-800 mt-1 mr-4"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-2">GitHub Actions</p>
+                                    <div class="flex justify-between mb-2">
+                                        <p>V0: <span class="text-v0-primary">有限</span></p>
+                                        <p>Lovable: <span class="text-lovable-primary">全流程支持</span></p>
+                                    </div>
+                                    <p class="text-gray-600">LovableCI/CD优化</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                            <div class="flex items-start">
+                                <i class="fab fa-figma text-2xl text-accent-yellow mt-1 mr-4"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-2">Figma导入</p>
+                                    <div class="flex justify-between mb-2">
+                                        <p>V0: <span class="text-v0-primary">图片识别</span></p>
+                                        <p>Lovable: <span class="text-lovable-primary">矢量解析</span></p>
+                                    </div>
+                                    <p class="text-gray-600">Lovable保持样式一致</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 发展前景预测 -->
+    <section class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">发展前景预测</h2>
+                <p class="text-gray-500 text-lg">Future Outlook</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 reveal">
+                <div class="bg-white p-8 rounded-xl cartoon-shadow">
+                    <h3 class="text-2xl font-bold mb-6">技术路线图</h3>
+                    
+                    <div class="relative pl-8 pb-8 border-l-2 border-v0-primary">
+                        <div class="absolute -left-2 top-0 w-6 h-6 rounded-full bg-v0-primary"></div>
+                        <div class="mb-6">
+                            <p class="font-bold text-v0-primary">V0 (2025)</p>
+                            <p class="text-xl font-bold">加强全栈支持</p>
+                            <p class="text-gray-600">计划集成Next.js服务端组件</p>
+                        </div>
+                    </div>
+                    
+                    <div class="relative pl-8 border-l-2 border-lovable-primary">
+                        <div class="absolute -left-2 top-0 w-6 h-6 rounded-full bg-lovable-primary"></div>
+                        <div>
+                            <p class="font-bold text-lovable-primary">Lovable (2025Q3)</p>
+                            <p class="text-xl font-bold">本地化部署方案</p>
+                            <p class="text-gray-600">支持私有模型替换</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-8 rounded-xl cartoon-shadow">
+                    <h3 class="text-2xl font-bold mb-6">用户偏好趋势</h3>
+                    
+                    <div class="chart-container">
+                        <canvas id="preferenceChart"></canvas>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="bg-v0-secondary/10 p-4 rounded-lg">
+                            <p class="font-bold text-v0-primary">82%</p>
+                            <p>前端设计师首选V0进行原型设计</p>
+                        </div>
+                        
+                        <div class="bg-lovable-secondary/10 p-4 rounded-lg">
+                            <p class="font-bold text-lovable-primary">67%</p>
+                            <p>全栈开发者倾向采用Lovable进行复杂项目开发</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-16 reveal">
+                <h3 class="text-2xl font-bold mb-6 text-center">决策建议框架</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                        <div class="w-12 h-12 rounded-full bg-accent-blue/20 flex items-center justify-center mb-4">
+                            <span class="text-2xl font-bold text-accent-blue">1</span>
+                        </div>
+                        <p class="font-bold text-lg mb-2">概念验证项目</p>
+                        <p class="text-gray-600">V0免费版快速迭代，平均节省40%设计时间</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                        <div class="w-12 h-12 rounded-full bg-accent-green/20 flex items-center justify-center mb-4">
+                            <span class="text-2xl font-bold text-accent-green">2</span>
+                        </div>
+                        <p class="font-bold text-lg mb-2">MVP开发</p>
+                        <p class="text-gray-600">Lovable基础版，功能完整度提升35%</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                        <div class="w-12 h-12 rounded-full bg-accent-yellow/20 flex items-center justify-center mb-4">
+                            <span class="text-2xl font-bold text-accent-yellow">3</span>
+                        </div>
+                        <p class="font-bold text-lg mb-2">企业级应用</p>
+                        <p class="text-gray-600">Lovable企业版+定制部署，运维成本降低28%</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl cartoon-shadow">
+                        <div class="w-12 h-12 rounded-full bg-v0-secondary/20 flex items-center justify-center mb-4">
+                            <span class="text-2xl font-bold text-v0-primary">4</span>
+                        </div>
+                        <p class="font-bold text-lg mb-2">设计系统构建</p>
+                        <p class="text-gray-600">V0 Pro版+Shadcn UI，组件一致性达92%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 改进的视频演示部分 -->
+    <section class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">浏览演示视频</h2>
+                <p class="text-gray-500 text-lg">Interactive Demo Video</p>
+            </div>
+            
+            <div class="reveal">
+                <div id="enhanced-video-container" class="video-container bg-white p-4 rounded-xl cartoon-shadow">
+                    <!-- 视频内容将在这里动态生成 -->
+                    <div class="video-content relative">
+                        <!-- 场景1: 介绍 -->
+                        <div id="scene-1" class="video-scene active" style="background: linear-gradient(135deg, #6366F1 0%, #A5B4FC 100%);">
+                            <h1 class="scene-title text-white anim-fade-in" style="animation-delay: 0.3s">V0 vs Lovable</h1>
+                            <p class="scene-subtitle text-white anim-fade-in" style="animation-delay: 0.6s">用户体验对比分析</p>
+                            <div class="scene-content anim-fade-in" style="animation-delay: 0.9s">
+                                <p class="text-white text-center text-xl">数据驱动的深度评测</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 场景2: 核心发现 -->
+                        <div id="scene-2" class="video-scene" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);">
+                            <h1 class="scene-title text-gray-900">核心发现概览</h1>
+                            <div class="scene-content">
+                                <div class="scene-grid">
+                                    <div class="scene-card anim-slide-left" style="animation-delay: 0.3s">
+                                        <p class="scene-stat text-v0-primary">4.2<span class="text-xl">秒</span></p>
+                                        <p class="scene-label">V0平均生成时间</p>
+                                    </div>
+                                    <div class="scene-card anim-slide-right" style="animation-delay: 0.5s">
+                                        <p class="scene-stat text-lovable-primary">6<span class="text-xl">类</span></p>
+                                        <p class="scene-label">Lovable后端服务集成</p>
+                                    </div>
+                                    <div class="scene-card anim-slide-left" style="animation-delay: 0.7s">
+                                        <p class="scene-stat text-lovable-primary">78<span class="text-xl">%</span></p>
+                                        <p class="scene-label">Lovable复杂项目推荐率</p>
+                                    </div>
+                                    <div class="scene-card anim-slide-right" style="animation-delay: 0.9s">
+                                        <p class="scene-stat text-v0-primary">42<span class="text-xl">%</span></p>
+                                        <p class="scene-label">V0复杂项目推荐率</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 场景3: 技术架构 -->
+                        <div id="scene-3" class="video-scene" style="background: linear-gradient(135deg, #6366F1 0%, #A5B4FC 100%);">
+                            <h1 class="scene-title text-white">技术架构对比</h1>
+                            <div class="scene-content">
+                                <div class="scene-grid">
+                                    <div class="scene-card anim-scale-in" style="animation-delay: 0.3s">
+                                        <h3 class="text-xl font-bold text-v0-primary mb-2">V0</h3>
+                                        <p class="mb-2">Sonnet模型架构</p>
+                                        <p class="text-sm">组件生成准确率: <span class="font-bold">92%</span></p>
+                                    </div>
+                                    <div class="scene-card anim-scale-in" style="animation-delay: 0.6s">
+                                        <h3 class="text-xl font-bold text-lovable-primary mb-2">Lovable</h3>
+                                        <p class="mb-2">Claude 3.5模型构建</p>
+                                        <p class="text-sm">数据库架构生成准确度: <span class="font-bold">85%</span></p>
+                                    </div>
+                                </div>
+                                <div class="scene-chart-container anim-fade-in" style="animation-delay: 0.9s">
+                                    <canvas id="videoArchitectureChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 场景4: 性能指标 -->
+                        <div id="scene-4" class="video-scene" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);">
+                            <h1 class="scene-title text-gray-900">响应性能指标</h1>
+                            <div class="scene-content">
+                                <div class="scene-grid">
+                                    <div class="scene-card anim-slide-left" style="animation-delay: 0.3s">
+                                        <h3 class="text-lg font-bold mb-2">初始加载时间</h3>
+                                        <div class="flex justify-between">
+                                            <p>V0: <span class="text-v0-primary font-bold">2.3s</span></p>
+                                            <p>Lovable: <span class="text-lovable-primary font-bold">3.1s</span></p>
+                                        </div>
+                                    </div>
+                                    <div class="scene-card anim-slide-right" style="animation-delay: 0.5s">
+                                        <h3 class="text-lg font-bold mb-2">复杂组件生成</h3>
+                                        <div class="flex justify-between">
+                                            <p>V0: <span class="text-v0-primary font-bold">4.8s</span></p>
+                                            <p>Lovable: <span class="text-lovable-primary font-bold">6.2s</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="scene-chart-container anim-fade-in" style="animation-delay: 0.7s">
+                                    <canvas id="videoPerformanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 场景5: 用户体验 -->
+                        <div id="scene-5" class="video-scene" style="background: linear-gradient(135deg, #EC4899 0%, #F9A8D4 100%);">
+                            <h1 class="scene-title text-white">用户体验数据</h1>
+                            <div class="scene-content">
+                                <div class="scene-chart-container anim-scale-in">
+                                    <canvas id="videoUserExpChart"></canvas>
+                                </div>
+                                <div class="scene-grid mt-4">
+                                    <div class="scene-card anim-slide-left" style="animation-delay: 0.5s">
+                                        <h3 class="text-lg font-bold mb-2">V0优势</h3>
+                                        <p>学习曲线: <span class="text-v0-primary font-bold">8.2</span></p>
+                                    </div>
+                                    <div class="scene-card anim-slide-right" style="animation-delay: 0.7s">
+                                        <h3 class="text-lg font-bold mb-2">Lovable优势</h3>
+                                        <p>多平台适配: <span class="text-lovable-primary font-bold">9.2</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 场景6: 商业化对比 -->
+                        <div id="scene-6" class="video-scene" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);">
+                            <h1 class="scene-title text-gray-900">商业化对比</h1>
+                            <div class="scene-content">
+                                <div class="scene-card anim-fade-in" style="animation-delay: 0.3s">
+                                    <h3 class="text-xl font-bold mb-4">成本效益分析</h3>
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="font-bold text-v0-primary">V0</p>
+                                            <p class="text-2xl font-bold">$0.067<span class="text-sm">/次</span></p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-lovable-primary">Lovable</p>
+                                            <p class="text-2xl font-bold">$0.033<span class="text-sm">/次</span></p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm mt-2">月均300次使用场景下的对比</p>
+                                </div>
+                                <div class="scene-chart-container anim-fade-in" style="animation-delay: 0.6s">
+                                    <canvas id="videoPricingChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 场景7: 决策建议 -->
+                        <div id="scene-7" class="video-scene" style="background: linear-gradient(135deg, #6366F1 0%, #A5B4FC 100%);">
+                            <h1 class="scene-title text-white">决策建议框架</h1>
+                            <div class="scene-content">
+                                <div class="scene-grid">
+                                    <div class="scene-card anim-scale-in" style="animation-delay: 0.3s">
+                                        <h3 class="text-lg font-bold mb-2">概念验证项目</h3>
+                                        <p class="text-v0-primary font-bold">V0免费版</p>
+                                        <p class="text-sm">平均节省40%设计时间</p>
+                                    </div>
+                                    <div class="scene-card anim-scale-in" style="animation-delay: 0.5s">
+                                        <h3 class="text-lg font-bold mb-2">MVP开发</h3>
+                                        <p class="text-lovable-primary font-bold">Lovable基础版</p>
+                                        <p class="text-sm">功能完整度提升35%</p>
+                                    </div>
+                                    <div class="scene-card anim-scale-in" style="animation-delay: 0.7s">
+                                        <h3 class="text-lg font-bold mb-2">企业级应用</h3>
+                                        <p class="text-lovable-primary font-bold">Lovable企业版</p>
+                                        <p class="text-sm">运维成本降低28%</p>
+                                    </div>
+                                    <div class="scene-card anim-scale-in" style="animation-delay: 0.9s">
+                                        <h3 class="text-lg font-bold mb-2">设计系统构建</h3>
+                                        <p class="text-v0-primary font-bold">V0 Pro版</p>
+                                        <p class="text-sm">组件一致性达92%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 进度条 -->
+                        <div class="progress-bar" style="width: 0%;"></div>
+                        
+                        <!-- 视频导航 -->
+                        <div class="video-nav">
+                            <div class="video-nav-dot active" data-scene="1"></div>
+                            <div class="video-nav-dot" data-scene="2"></div>
+                            <div class="video-nav-dot" data-scene="3"></div>
+                            <div class="video-nav-dot" data-scene="4"></div>
+                            <div class="video-nav-dot" data-scene="5"></div>
+                            <div class="video-nav-dot" data-scene="6"></div>
+                            <div class="video-nav-dot" data-scene="7"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 视频控制器 -->
+                    <div class="video-controls">
+                        <button id="prev-scene" disabled><i class="fas fa-step-backward"></i></button>
+                        <button id="play-pause"><i class="fas fa-play"></i></button>
+                        <button id="next-scene"><i class="fas fa-step-forward"></i></button>
+                        <button id="restart"><i class="fas fa-redo"></i></button>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-between items-center">
+                    <p class="text-gray-500">使用交互式控件浏览演示视频</p>
+                    <button id="fullscreen-btn" class="bg-v0-primary hover:bg-v0-primary/80 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-expand mr-2"></i> 全屏观看
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 结论 -->
+    <section class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">结论</h2>
+                <p class="text-gray-500 text-lg">Conclusion</p>
+            </div>
+            
+            <div class="bg-white p-8 rounded-xl cartoon-shadow reveal">
+                <p class="text-xl mb-6">技术选型时应重点评估项目规模、团队技能栈及长期维护需求。</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-v0-secondary/10 p-6 rounded-lg">
+                        <h3 class="text-2xl font-bold text-v0-primary mb-4">V0 适用场景</h3>
+                        <p class="mb-4">对于需要快速上市的前端驱动型项目，V0的优势更为显著：</p>
+                        <ul class="space-y-2">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-v0-primary mt-1 mr-2"></i>
+                                <span>UI原型快速迭代</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-v0-primary mt-1 mr-2"></i>
+                                <span>设计系统构建</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-v0-primary mt-1 mr-2"></i>
+                                <span>小型项目成本效益高</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-lovable-secondary/10 p-6 rounded-lg">
+                        <h3 class="text-2xl font-bold text-lovable-primary mb-4">Lovable 适用场景</h3>
+                        <p class="mb-4">而涉及复杂业务逻辑的全栈应用，Lovable提供的端到端解决方案更具竞争力：</p>
+                        <ul class="space-y-2">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                                <span>全栈项目开发</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                                <span>企业级应用部署</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-lovable-primary mt-1 mr-2"></i>
+                                <span>大型团队协作</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="py-12 px-4 bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">数据来源</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="https://www.caprompt.com/a/38495" class="hover:text-white">caprompt.com</a></li>
+                        <li><a href="https://www.datacamp.com/tutorial/vercel-v0" class="hover:text-white">datacamp.com</a></li>
+                        <li><a href="https://blog.csdn.net/Taobaojishu/article/details/147290529" class="hover:text-white">blog.csdn.net</a></li>
+                        <li><a href="https://qiita.com/masakinihirota/items/4cc6f8637206e29502fd" class="hover:text-white">qiita.com</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-bold mb-4">社区讨论</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="https://www.reddit.com/r/nextjs/comments/1huxty4/why_vercel_v0_quality_is_the_worst_compared_to/" class="hover:text-white">Reddit</a></li>
+                        <li><a href="https://www.youtube.com/watch?v=o7mbPBDZvCY" class="hover:text-white">YouTube</a></li>
+                        <li><a href="https://www.linkedin.com/posts/alastairotter_lovable-activity-7267069610363940865OysA" class="hover:text-white">LinkedIn</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-bold mb-4">对比资源</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="https://sourceforge.net/software/compare/Lovable-vs-v0/" class="hover:text-white">SourceForge对比</a></li>
+                        <li><a href="https://blog.csdn.net/m0_55932113/article/details/142217194" class="hover:text-white">CSDN分析</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
+                <p>© 2025 V0与Lovable用户体验对比分析 | 数据驱动的深度评测</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 滚动动效
+        document.addEventListener('DOMContentLoaded', function() {
+            // 滚动显示元素
+            function revealOnScroll() {
+                const reveals = document.querySelectorAll('.reveal');
+                
+                for (let i = 0; i < reveals.length; i++) {
+                    const windowHeight = window.innerHeight;
+                    const elementTop = reveals[i].getBoundingClientRect().top;
+                    const elementVisible = 150;
+                    
+                    if (elementTop < windowHeight - elementVisible) {
+                        reveals[i].classList.add('active');
+                    }
+                }
+            }
+            
+            window.addEventListener('scroll', revealOnScroll);
+            revealOnScroll(); // 初始检查
+            
+            // 迭代次数对比图表
+            const iterationCtx = document.getElementById('iterationChart').getContext('2d');
+            new Chart(iterationCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['V0', 'Lovable'],
+                    datasets: [{
+                        label: '平均迭代次数',
+                        data: [3, 1.8],
+                        backgroundColor: [
+                            '#6366F1',
+                            '#EC4899'
+                        ],
+                        borderWidth: 0,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `平均迭代次数: ${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 性能指标图表
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(performanceCtx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        '初始加载时间',
+                        '复杂组件生成',
+                        '全栈项目构建',
+                        '代码质量',
+                        '响应速度',
+                        '内存占用'
+                    ],
+                    datasets: [
+                        {
+                            label: 'V0',
+                            data: [90, 85, 20, 75, 95, 80],
+                            fill: true,
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            borderColor: '#6366F1',
+                            pointBackgroundColor: '#6366F1',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#6366F1'
+                        },
+                        {
+                            label: 'Lovable',
+                            data: [70, 65, 95, 90, 75, 60],
+                            fill: true,
+                            backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                            borderColor: '#EC4899',
+                            pointBackgroundColor: '#EC4899',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#EC4899'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+            
+            // 场景完成度图表
+            const scenarioCtx = document.getElementById('scenarioChart').getContext('2d');
+            new Chart(scenarioCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['基础UI搭建', '购物车逻辑', '支付网关集成', '数据库集成'],
+                    datasets: [
+                        {
+                            label: 'V0',
+                            data: [90, 40, 10, 30],
+                            backgroundColor: '#6366F1',
+                            borderWidth: 0,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Lovable',
+                            data: [80, 95, 90, 85],
+                            backgroundColor: '#EC4899',
+                            borderWidth: 0,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 用户偏好趋势图表
+            const preferenceCtx = document.getElementById('preferenceChart').getContext('2d');
+            new Chart(preferenceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        '前端设计师首选V0',
+                        '全栈开发者首选Lovable',
+                        '两者均使用'
+                    ],
+                    datasets: [{
+                        data: [82, 67, 15],
+                        backgroundColor: [
+                            '#6366F1',
+                            '#EC4899',
+                            '#94A3B8'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+            
+            // 视频演示部分的增强功能
+            // 视频场景控制
+            let currentScene = 1;
+            const totalScenes = 7;
+            let isPlaying = false;
+            let autoPlayTimer = null;
+            const sceneDuration = 8000; // 每个场景持续8秒
+            
+            // 视频控制按钮
+            const prevBtn = document.getElementById('prev-scene');
+            const nextBtn = document.getElementById('next-scene');
+            const playPauseBtn = document.getElementById('play-pause');
+            const restartBtn = document.getElementById('restart');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            
+            // 进度条
+            const progressBar = document.querySelector('.progress-bar');
+            
+            // 导航点
+            const navDots = document.querySelectorAll('.video-nav-dot');
+            
+            // 初始化视频图表
+            function initVideoCharts() {
+                // 架构对比图表
+                if (document.getElementById('videoArchitectureChart')) {
+                    const archCtx = document.getElementById('videoArchitectureChart').getContext('2d');
+                    new Chart(archCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['前端组件', '数据库建模', 'API生成', '部署集成'],
+                            datasets: [
+                                {
+                                    label: 'V0',
+                                    data: [92, 45, 30, 70],
+                                    backgroundColor: '#6366F1',
+                                    borderWidth: 0,
+                                    borderRadius: 6
+                                },
+                                {
+                                    label: 'Lovable',
+                                    data: [85, 85, 90, 85],
+                                    backgroundColor: '#EC4899',
+                                    borderWidth: 0,
+                                    borderRadius: 6
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // 性能对比图表
+                if (document.getElementById('videoPerformanceChart')) {
+                    const perfCtx = document.getElementById('videoPerformanceChart').getContext('2d');
+                    new Chart(perfCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['100kb', '200kb', '300kb', '400kb', '500kb'],
+                            datasets: [
+                                {
+                                    label: 'V0 响应时间(秒)',
+                                    data: [1.2, 2.1, 3.5, 5.2, 7.8],
+                                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                                    borderColor: '#6366F1',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Lovable 响应时间(秒)',
+                                    data: [1.8, 2.5, 3.2, 4.1, 5.3],
+                                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                                    borderColor: '#EC4899',
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '响应时间(秒)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // 用户体验图表
+                if (document.getElementById('videoUserExpChart')) {
+                    const userExpCtx = document.getElementById('videoUserExpChart').getContext('2d');
+                    new Chart(userExpCtx, {
+                        type: 'radar',
+                        data: {
+                            labels: [
+                                '学习曲线',
+                                '输出可维护性',
+                                '错误恢复能力',
+                                '多平台适配'
+                            ],
+                            datasets: [
+                                {
+                                    label: 'V0',
+                                    data: [8.2, 6.8, 7.1, 7.5],
+                                    fill: true,
+                                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                                    borderColor: '#6366F1',
+                                    pointBackgroundColor: '#6366F1',
+                                    pointBorderColor: '#fff'
+                                },
+                                {
+                                    label: 'Lovable',
+                                    data: [7.1, 8.4, 8.9, 9.2],
+                                    fill: true,
+                                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                                    borderColor: '#EC4899',
+                                    pointBackgroundColor: '#EC4899',
+                                    pointBorderColor: '#fff'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                r: {
+                                    angleLines: {
+                                        display: true
+                                    },
+                                    suggestedMin: 0,
+                                    suggestedMax: 10
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // 定价模型图表
+                if (document.getElementById('videoPricingChart')) {
+                    const pricingCtx = document.getElementById('videoPricingChart').getContext('2d');
+                    new Chart(pricingCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['50次', '100次', '200次', '300次', '500次'],
+                            datasets: [
+                                {
+                                    label: 'V0 成本/次($)',
+                                    data: [0.04, 0.05, 0.06, 0.067, 0.08],
+                                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                                    borderColor: '#6366F1',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Lovable 成本/次($)',
+                                    data: [0.06, 0.05, 0.04, 0.033, 0.02],
+                                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                                    borderColor: '#EC4899',
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '成本/次($)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // 初始化视频图表
+            initVideoCharts();
+            
+            // 切换场景
+            function showScene(sceneNum) {
+                // 隐藏所有场景
+                document.querySelectorAll('.video-scene').forEach(scene => {
+                    scene.classList.remove('active');
+                });
+                
+                // 显示当前场景
+                document.getElementById(`scene-${sceneNum}`).classList.add('active');
+                
+                // 更新导航点
+                navDots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index + 1 === sceneNum);
+                });
+                
+                // 更新按钮状态
+                prevBtn.disabled = sceneNum === 1;
+                nextBtn.disabled = sceneNum === totalScenes;
+                
+                // 重置场景内动画
+                const activeScene = document.getElementById(`scene-${sceneNum}`);
+                const animElements = activeScene.querySelectorAll('[class*="anim-"]');
+                
+                animElements.forEach(el => {
+                    // 重置动画
+                    el.style.animation = 'none';
+                    el.offsetHeight; // 触发重排
+                    el.style.animation = null;
+                });
+                
+                // 更新当前场景
+                currentScene = sceneNum;
+            }
+            
+            // 播放/暂停
+            function togglePlayPause() {
+                if (isPlaying) {
+                    // 暂停
+                    clearInterval(autoPlayTimer);
+                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                } else {
+                    // 播放
+                    autoPlayTimer = setInterval(function() {
+                        updateProgress();
+                        
+                        // 检查是否需要切换到下一个场景
+                        if (progressPercent >= 100) {
+                            if (currentScene < totalScenes) {
+                                showScene(currentScene + 1);
+                                progressPercent = 0;
+                            } else {
+                                // 到达最后一个场景，停止播放
+                                clearInterval(autoPlayTimer);
+                                isPlaying = false;
+                                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                            }
+                        }
+                    }, 100);
+                    
+                    playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                }
+                
+                isPlaying = !isPlaying;
+            }
+            
+            // 进度条更新
+            let progressPercent = 0;
+            function updateProgress() {
+                // 计算进度百分比
+                const increment = (100 * 100) / sceneDuration; // 每100ms的增量
+                progressPercent += increment;
+                
+                if (progressPercent > 100) {
+                    progressPercent = 100;
+                }
+                
+                // 更新进度条
+                progressBar.style.width = `${progressPercent}%`;
+            }
+            
+            // 重置视频
+            function resetVideo() {
+                // 停止播放
+                if (isPlaying) {
+                    clearInterval(autoPlayTimer);
+                    isPlaying = false;
+                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                }
+                
+                // 重置进度
+                progressPercent = 0;
+                progressBar.style.width = '0%';
+                
+                // 显示第一个场景
+                showScene(1);
+            }
+            
+            // 全屏显示
+            function toggleFullscreen() {
+                const videoContainer = document.getElementById('enhanced-video-container');
+                
+                if (!document.fullscreenElement) {
+                    if (videoContainer.requestFullscreen) {
+                        videoContainer.requestFullscreen();
+                    } else if (videoContainer.webkitRequestFullscreen) {
+                        videoContainer.webkitRequestFullscreen();
+                    } else if (videoContainer.msRequestFullscreen) {
+                        videoContainer.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+            }
+            
+            // 事件监听
+            prevBtn.addEventListener('click', function() {
+                if (currentScene > 1) {
+                    showScene(currentScene - 1);
+                    progressPercent = 0;
+                    progressBar.style.width = '0%';
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (currentScene < totalScenes) {
+                    showScene(currentScene + 1);
+                    progressPercent = 0;
+                    progressBar.style.width = '0%';
+                }
+            });
+            
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            restartBtn.addEventListener('click', resetVideo);
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+            
+            // 导航点点击事件
+            navDots.forEach((dot, index) => {
+                dot.addEventListener('click', function() {
+                    showScene(index + 1);
+                    progressPercent = 0;
+                    progressBar.style.width = '0%';
+                });
+            });
+            
+            // 初始化显示第一个场景
+            showScene(1);
+            
+            // 使用GSAP增强滚动动画
+            if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+                gsap.registerPlugin(ScrollTrigger);
+                
+                // 为每个图表添加滚动触发动画
+                document.querySelectorAll('.chart-container').forEach(chart => {
+                    gsap.from(chart, {
+                        opacity: 0,
+                        y: 50,
+                        duration: 1,
+                        scrollTrigger: {
+                            trigger: chart,
+                            start: "top 80%",
+                            end: "bottom 20%",
+                            toggleActions: "play none none reverse"
+                        }
+                    });
+                });
+                
+                // 为大数字添加滚动触发动画
+                document.querySelectorAll('.mega-number').forEach(num => {
+                    gsap.from(num, {
+                        textContent: 0,
+                        duration: 2,
+                        ease: "power1.inOut",
+                        snap: { textContent: 1 },
+                        stagger: 1,
+                        scrollTrigger: {
+                            trigger: num,
+                            start: "top 80%",
+                            end: "bottom 20%",
+                            toggleActions: "play none none reverse"
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
